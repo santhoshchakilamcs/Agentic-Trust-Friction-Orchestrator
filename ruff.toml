@@ -1,0 +1,11 @@
+# Ruff linter & formatter configuration
+target-version = "py311"
+line-length = 120
+
+[lint]
+select = ["E", "F", "W", "I"]
+ignore = ["E501"]  # line length handled by formatter
+
+[lint.isort]
+known-first-party = ["agentic_orchestrator"]
+

@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Remitly – Agentic Trust Orchestrator</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f0f2f5;color:#1a1a2e}
+header{background:linear-gradient(135deg,#0a1628 0%,#1a3a5c 100%);color:#fff;padding:20px 32px;display:flex;align-items:center;gap:16px}
+header h1{font-size:1.4rem;font-weight:600}
+header .badge{background:#00c853;font-size:.7rem;padding:2px 8px;border-radius:10px;font-weight:700}
+.container{max-width:1200px;margin:24px auto;display:grid;grid-template-columns:380px 1fr;gap:24px;padding:0 24px}
+.card{background:#fff;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,.08);overflow:hidden}
+.card-header{padding:16px 20px;font-weight:600;font-size:1rem;border-bottom:1px solid #e8ecf1;display:flex;align-items:center;gap:8px}
+.card-body{padding:20px}
+label{display:block;font-size:.8rem;font-weight:600;color:#555;margin-bottom:4px;margin-top:12px}
+label:first-child{margin-top:0}
+input,select{width:100%;padding:9px 12px;border:1.5px solid #d1d9e6;border-radius:8px;font-size:.9rem;transition:border .2s}
+input:focus,select:focus{outline:none;border-color:#2962ff;box-shadow:0 0 0 3px rgba(41,98,255,.12)}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.toggle{display:flex;align-items:center;gap:8px;margin-top:14px}
+.toggle input{width:auto}
+.btn{width:100%;margin-top:20px;padding:12px;border:none;border-radius:8px;font-size:1rem;font-weight:600;cursor:pointer;transition:background .2s}
+.btn-primary{background:#2962ff;color:#fff}
+.btn-primary:hover{background:#0039cb}
+.btn-primary:disabled{background:#90a4ae;cursor:wait}
+#results{min-height:200px}
+.empty-state{text-align:center;padding:60px 20px;color:#90a4ae}
+.empty-state .icon{font-size:3rem;margin-bottom:12px}
+.result-grid{display:grid;gap:16px}
+.verdict{padding:20px;border-radius:10px;text-align:center}
+.verdict h2{font-size:1.6rem;margin-bottom:4px}
+.verdict .sub{font-size:.85rem;opacity:.85}
+.verdict.APPROVE{background:#e8f5e9;color:#2e7d32}
+.verdict.CHALLENGE{background:#fff3e0;color:#e65100}
+.verdict.ESCALATE_TO_HUMAN{background:#fce4ec;color:#b71c1c}
+.verdict.BLOCK{background:#f44336;color:#fff}
+.metric-row{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.metric{background:#f5f7fa;border-radius:8px;padding:12px;text-align:center}
+.metric .val{font-size:1.3rem;font-weight:700;color:#1a1a2e}
+.metric .lbl{font-size:.7rem;color:#777;margin-top:2px}
+.section{margin-top:16px}
+.section h3{font-size:.85rem;font-weight:700;color:#555;margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px}
+.flags{list-style:none;padding:0}
+.flags li{padding:6px 10px;background:#fff8e1;border-left:3px solid #ffb300;margin-bottom:6px;border-radius:4px;font-size:.82rem}
+.msg-box{background:#e3f2fd;border-radius:8px;padding:14px;font-size:.9rem;line-height:1.5;white-space:pre-wrap}
+.log-box{background:#263238;color:#b0bec5;border-radius:8px;padding:14px;font-size:.75rem;max-height:300px;overflow-y:auto;line-height:1.6;white-space:pre-wrap}
+.log-box .agent{color:#80cbc4}.log-box .claude{color:#ce93d8}.log-box .ok{color:#a5d6a7}.log-box .warn{color:#ffcc80}
+.spinner{display:inline-block;width:18px;height:18px;border:3px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:8px}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media(max-width:820px){.container{grid-template-columns:1fr}.metric-row{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+<header>
+  <div>💸</div>
+  <h1>Remitly · Agentic Trust &amp; Friction Orchestrator</h1>
+  <span class="badge" id="llm-badge">loading…</span>
+</header>
+
+<div class="container">
+  <!-- LEFT: Send Money Form -->
+  <div class="card">
+    <div class="card-header">🏦 Send Money</div>
+    <div class="card-body">
+      <form id="txn-form" autocomplete="off">
+        <label>Sender (User ID)</label>
+        <select id="user_id"></select>
+
+        <div class="row">
+          <div><label>Amount (USD)</label><input id="amount" type="number" min="1" step="0.01" value="350" required></div>
+          <div><label>Corridor</label><select id="corridor"></select></div>
+        </div>
+
+        <label>Recipient Name</label>
+        <input id="recipient_name" value="Elena Santos" required>
+
+        <div class="row">
+          <div><label>Recipient Country</label><input id="recipient_country" value="PH" maxlength="2" required></div>
+          <div><label>Device ID</label><input id="device_id" value="DEV-KNOWN"></div>
+        </div>
+
+        <label>IP Address</label>
+        <input id="ip_address" value="192.168.1.50">
+
+        <div class="toggle">
+          <input type="checkbox" id="is_new_recipient">
+          <label for="is_new_recipient" style="margin:0">New recipient?</label>
+        </div>
+
+        <button type="submit" class="btn btn-primary" id="submit-btn">Evaluate Transaction</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- RIGHT: Results -->
+  <div class="card">
+    <div class="card-header">📊 Evaluation Result</div>
+    <div class="card-body" id="results">
+      <div class="empty-state">
+        <div class="icon">🔍</div>
+        <p>Fill in the form and click <strong>Evaluate</strong> to see Claude's real-time fraud analysis.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const API_KEY = 'orch-secret-key-change-me-in-production';
+const CORRIDORS = ["US-PH","US-IN","US-MX","US-GT","US-NG","GB-PH","GB-IN","GB-PK","GB-BD","CA-PH","CA-IN"];
+
+// populate corridor dropdown
+const corSel = document.getElementById('corridor');
+CORRIDORS.forEach(c => { const o=document.createElement('option'); o.value=c; o.textContent=c; corSel.appendChild(o); });
+
+// load users + health
+async function init(){
+  try{
+    const [hRes,uRes] = await Promise.all([fetch('/health'),fetch('/api/v1/users',{headers:{'X-API-Key':API_KEY}})]);
+    const h=await hRes.json(), u=await uRes.json();
+    document.getElementById('llm-badge').textContent = h.llm_available ? `Claude · ${h.model}` : 'Heuristic Mode';
+    const sel=document.getElementById('user_id');
+    u.users.forEach(id=>{ const o=document.createElement('option'); o.value=id; o.textContent=id; sel.appendChild(o); });
+  }catch(e){ console.error(e); }
+}
+init();
+
+// corridor auto-updates recipient country
+corSel.addEventListener('change', ()=>{
+  const parts=corSel.value.split('-');
+  if(parts.length===2) document.getElementById('recipient_country').value=parts[1];
+});
+
+// form submit
+document.getElementById('txn-form').addEventListener('submit', async(e)=>{
+  e.preventDefault();
+  const btn=document.getElementById('submit-btn');
+  btn.disabled=true; btn.innerHTML='<span class="spinner"></span>Claude is thinking…';
+  const body={
+    user_id: document.getElementById('user_id').value,
+    amount_usd: parseFloat(document.getElementById('amount').value),
+    recipient_name: document.getElementById('recipient_name').value,
+    recipient_country: document.getElementById('recipient_country').value,
+    corridor: corSel.value,
+    device_id: document.getElementById('device_id').value,
+    ip_address: document.getElementById('ip_address').value,
+    is_new_recipient: document.getElementById('is_new_recipient').checked,
+  };
+  try{
+    const res=await fetch('/api/v1/evaluate',{method:'POST',headers:{'Content-Type':'application/json','X-API-Key':API_KEY},body:JSON.stringify(body)});
+    if(!res.ok){ const err=await res.json(); throw new Error(err.detail||res.statusText); }
+    const d=await res.json();
+    renderResult(d);
+  }catch(err){
+    document.getElementById('results').innerHTML=`<div class="empty-state"><div class="icon">⚠️</div><p>${err.message}</p></div>`;
+  }finally{ btn.disabled=false; btn.textContent='Evaluate Transaction'; }
+});
+
+function renderResult(d){
+  const action=d.final_action;
+  const actionLabel={'APPROVE':'✅ Approved','CHALLENGE':'⚠️ Challenge','ESCALATE_TO_HUMAN':'🚨 Escalated','BLOCK':'🛑 Blocked'}[action]||action;
+  const flags=d.investigator_flags.map(f=>`<li>${esc(f)}</li>`).join('')+d.compliance_flags.map(f=>`<li style="border-color:#f44336;background:#ffebee">${esc(f)}</li>`).join('');
+  const logs=d.processing_log.map(l=>l.replace(/\[([^\]]+)\]/g,(m,g)=>{
+    if(g.includes('Claude')) return `<span class="claude">[${g}]</span>`;
+    if(g.includes('✅')) return `<span class="ok">[${g}]</span>`;
+    if(g.includes('🚫')) return `<span class="warn">[${g}]</span>`;
+    return `<span class="agent">[${g}]</span>`;
+  })).join('\n');
+
+  document.getElementById('results').innerHTML=`
+    <div class="result-grid">
+      <div class="verdict ${action}">
+        <h2>${actionLabel}</h2>
+        <div class="sub">${d.txn_id}</div>
+      </div>
+      <div class="metric-row">
+        <div class="metric"><div class="val">${d.risk_score.toFixed(3)}</div><div class="lbl">Risk Score</div></div>
+        <div class="metric"><div class="val">${d.judge_grade||'—'}</div><div class="lbl">Judge Grade</div></div>
+        <div class="metric"><div class="val">${d.judge_score!==null?d.judge_score.toFixed(2):'—'}</div><div class="lbl">Judge Score</div></div>
+      </div>
+      <div class="metric-row">
+        <div class="metric"><div class="val">${d.investigator_score.toFixed(3)}</div><div class="lbl">Investigator</div></div>
+        <div class="metric"><div class="val">${d.context_adjustment>=0?'+':''}${d.context_adjustment.toFixed(3)}</div><div class="lbl">Context Adj.</div></div>
+        <div class="metric"><div class="val">${d.llm_enabled?'Claude':'Heuristic'}</div><div class="lbl">Engine</div></div>
+      </div>
+      ${d.risk_reasoning?`<div class="section"><h3>Risk Reasoning</h3><div class="msg-box" style="background:#f5f5f5">${esc(d.risk_reasoning)}</div></div>`:''}
+      ${flags?`<div class="section"><h3>Flags</h3><ul class="flags">${flags}</ul></div>`:''}
+      ${d.challenge_message?`<div class="section"><h3>Customer Message</h3><div class="msg-box">${esc(d.challenge_message)}</div></div>`:''}
+      ${d.judge_feedback?`<div class="section"><h3>LLM Judge Feedback</h3><div class="msg-box" style="background:#ede7f6">${esc(d.judge_feedback)}</div></div>`:''}
+      <div class="section"><h3>Agent Processing Log</h3><div class="log-box">${logs}</div></div>
+    </div>`;
+}
+function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+</script>
+</body>
+</html>
+
