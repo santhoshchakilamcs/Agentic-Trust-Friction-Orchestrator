@@ -1,12 +1,8 @@
 """Tests for the synthetic transaction data generator."""
 
-import pytest
 from agentic_orchestrator.data.generator import (
     generate_transactions,
-    Transaction,
-    UserProfile,
 )
-from agentic_orchestrator.config import SANCTIONS_COUNTRIES
 
 
 class TestGenerateTransactions:
@@ -76,4 +72,3 @@ class TestGenerateTransactions:
     def test_all_fraud_ratio(self):
         txns, _ = generate_transactions(n_total=20, fraud_ratio=1.0)
         assert all(t.is_fraud for t in txns)
-

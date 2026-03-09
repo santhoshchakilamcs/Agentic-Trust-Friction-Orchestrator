@@ -10,8 +10,7 @@ Uses SHA-256 hashing instead of simple redaction so that:
 import hashlib
 import os
 import re
-from typing import Dict, Any
-
+from typing import Any, Dict
 
 # Salt loaded once at import time; set PII_HASH_SALT in .env for production
 _SALT = os.getenv("PII_HASH_SALT", "agentic-orchestrator-default-salt").encode()
@@ -78,4 +77,3 @@ class PIIMasker:
     def mask_for_logging(cls, state_dict: Dict[str, Any]) -> Dict[str, Any]:
         """Prepare state dict for safe logging / external transmission."""
         return cls.mask_dict(state_dict)
-

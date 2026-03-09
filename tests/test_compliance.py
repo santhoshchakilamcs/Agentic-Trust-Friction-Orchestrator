@@ -1,20 +1,28 @@
 """Tests for the compliance firewall and PII masker."""
 
-import pytest
-from agentic_orchestrator.memory.short_term import TransactionState
 from agentic_orchestrator.compliance.firewall import ComplianceFirewall
 from agentic_orchestrator.compliance.pii_masker import PIIMasker
 from agentic_orchestrator.config import (
-    AML_THRESHOLD_USD, ACTION_BLOCK, ACTION_ESCALATE, ACTION_APPROVE,
+    ACTION_APPROVE,
+    ACTION_BLOCK,
+    ACTION_ESCALATE,
+    AML_THRESHOLD_USD,
 )
+from agentic_orchestrator.memory.short_term import TransactionState
 
 
 def _make_state(**overrides) -> TransactionState:
     defaults = dict(
-        txn_id="TXN-COMP01", user_id="USR-COMP01", amount_usd=200.0,
-        recipient_name="Elena Santos", recipient_country="PH",
-        corridor="US-PH", device_id="DEV-ABC", ip_address="10.0.0.1",
-        timestamp="2026-03-09T10:00:00", is_new_recipient=False,
+        txn_id="TXN-COMP01",
+        user_id="USR-COMP01",
+        amount_usd=200.0,
+        recipient_name="Elena Santos",
+        recipient_country="PH",
+        corridor="US-PH",
+        device_id="DEV-ABC",
+        ip_address="10.0.0.1",
+        timestamp="2026-03-09T10:00:00",
+        is_new_recipient=False,
     )
     defaults.update(overrides)
     return TransactionState(**defaults)
@@ -140,6 +148,7 @@ class TestHITLReviewer:
 
     def test_needs_review_on_escalation(self):
         from agentic_orchestrator.compliance.hitl_reviewer import HITLReviewer
+
         reviewer = HITLReviewer(enabled=False)
         state = _make_state()
         state.compliance_override = ACTION_ESCALATE
@@ -147,12 +156,14 @@ class TestHITLReviewer:
 
     def test_no_review_for_normal(self):
         from agentic_orchestrator.compliance.hitl_reviewer import HITLReviewer
+
         reviewer = HITLReviewer(enabled=False)
         state = _make_state()
         assert reviewer.needs_review(state) is False
 
     def test_disabled_auto_approves(self):
         from agentic_orchestrator.compliance.hitl_reviewer import HITLReviewer
+
         reviewer = HITLReviewer(enabled=False)
         state = _make_state(amount_usd=5000.0)
         state.compliance_override = ACTION_ESCALATE
@@ -165,6 +176,7 @@ class TestHITLReviewer:
 
     def test_callback_approve(self):
         from agentic_orchestrator.compliance.hitl_reviewer import HITLReviewer
+
         reviewer = HITLReviewer(review_callback=lambda s: "APPROVE", enabled=True)
         state = _make_state(amount_usd=5000.0)
         state.compliance_override = ACTION_ESCALATE
@@ -175,6 +187,7 @@ class TestHITLReviewer:
 
     def test_callback_reject(self):
         from agentic_orchestrator.compliance.hitl_reviewer import HITLReviewer
+
         reviewer = HITLReviewer(review_callback=lambda s: "REJECT", enabled=True)
         state = _make_state(amount_usd=5000.0)
         state.compliance_override = ACTION_ESCALATE
@@ -185,6 +198,7 @@ class TestHITLReviewer:
 
     def test_review_log_recorded(self):
         from agentic_orchestrator.compliance.hitl_reviewer import HITLReviewer
+
         reviewer = HITLReviewer(review_callback=lambda s: "APPROVE", enabled=True)
         state = _make_state(txn_id="TXN-HITL-01")
         state.compliance_override = ACTION_ESCALATE
@@ -197,9 +211,9 @@ class TestHITLReviewer:
 
     def test_skip_if_not_needed(self):
         from agentic_orchestrator.compliance.hitl_reviewer import HITLReviewer
+
         reviewer = HITLReviewer(review_callback=lambda s: "REJECT", enabled=True)
         state = _make_state()
         result = reviewer.review(state)
         assert result.hitl_decision is None
         assert result.final_action == ""  # unchanged
-

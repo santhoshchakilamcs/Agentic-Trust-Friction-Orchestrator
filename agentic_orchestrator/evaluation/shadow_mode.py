@@ -4,9 +4,9 @@ and compares their decisions to measure improvement.
 """
 
 from dataclasses import dataclass, field
-from typing import List, Dict
+from typing import Dict, List
 
-from agentic_orchestrator.config import ACTION_APPROVE, ACTION_CHALLENGE, ACTION_ESCALATE, ACTION_BLOCK
+from agentic_orchestrator.config import ACTION_BLOCK, ACTION_CHALLENGE, ACTION_ESCALATE
 
 
 @dataclass
@@ -30,9 +30,9 @@ class ShadowModeReport:
     total_legitimate: int = 0
 
     # Baseline metrics
-    baseline_true_positives: int = 0   # Fraud correctly caught
+    baseline_true_positives: int = 0  # Fraud correctly caught
     baseline_false_positives: int = 0  # Legit flagged as fraud
-    baseline_true_negatives: int = 0   # Legit correctly approved
+    baseline_true_negatives: int = 0  # Legit correctly approved
     baseline_false_negatives: int = 0  # Fraud missed
 
     # Agentic metrics
@@ -83,19 +83,23 @@ class ShadowModeReport:
             "total_fraud": self.total_fraud,
             "total_legitimate": self.total_legitimate,
             "baseline": {
-                "precision": self._safe_div(self.baseline_true_positives,
-                    self.baseline_true_positives + self.baseline_false_positives),
-                "recall": self._safe_div(self.baseline_true_positives,
-                    self.baseline_true_positives + self.baseline_false_negatives),
+                "precision": self._safe_div(
+                    self.baseline_true_positives, self.baseline_true_positives + self.baseline_false_positives
+                ),
+                "recall": self._safe_div(
+                    self.baseline_true_positives, self.baseline_true_positives + self.baseline_false_negatives
+                ),
                 "false_positive_rate": self._safe_div(self.baseline_false_positives, self.total_legitimate),
                 "true_positives": self.baseline_true_positives,
                 "false_positives": self.baseline_false_positives,
             },
             "agentic": {
-                "precision": self._safe_div(self.agentic_true_positives,
-                    self.agentic_true_positives + self.agentic_false_positives),
-                "recall": self._safe_div(self.agentic_true_positives,
-                    self.agentic_true_positives + self.agentic_false_negatives),
+                "precision": self._safe_div(
+                    self.agentic_true_positives, self.agentic_true_positives + self.agentic_false_positives
+                ),
+                "recall": self._safe_div(
+                    self.agentic_true_positives, self.agentic_true_positives + self.agentic_false_negatives
+                ),
                 "false_positive_rate": self._safe_div(self.agentic_false_positives, self.total_legitimate),
                 "true_positives": self.agentic_true_positives,
                 "false_positives": self.agentic_false_positives,
@@ -103,8 +107,6 @@ class ShadowModeReport:
             "agreement_rate": self._safe_div(self.agreement_count, self.total_transactions),
             "agentic_improvements": self.agentic_improvements,
             "improvement_details": [
-                {"txn_id": r.txn_id, "reasoning": r.agentic_reasoning}
-                for r in self.results if r.agentic_better
+                {"txn_id": r.txn_id, "reasoning": r.agentic_reasoning} for r in self.results if r.agentic_better
             ],
         }
-

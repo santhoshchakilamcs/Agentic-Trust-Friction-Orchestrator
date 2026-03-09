@@ -5,9 +5,9 @@ Uses Claude API for natural message generation with heuristic fallback.
 """
 
 from agentic_orchestrator.agents.base import BaseAgent
-from agentic_orchestrator.memory.short_term import TransactionState
 from agentic_orchestrator.config import ACTION_CHALLENGE, ACTION_ESCALATE
 from agentic_orchestrator.llm.client import call_claude, is_available
+from agentic_orchestrator.memory.short_term import TransactionState
 
 COMMUNICATION_SYSTEM = """You are a customer communication agent for Remitly, a cross-border payment company.
 Generate a SHORT, empathetic, friendly verification message for the customer.
@@ -69,9 +69,7 @@ class CommunicationAgent(BaseAgent):
         """Generate a friendly 2FA / soft-challenge message (fallback)."""
         context_hint = ""
         if state.context_life_events:
-            context_hint = (
-                " We noticed this might be related to a special occasion. "
-            )
+            context_hint = " We noticed this might be related to a special occasion. "
         elif state.is_new_recipient:
             context_hint = (
                 f" Since this is your first transfer to {state.recipient_name}, "
@@ -102,4 +100,3 @@ class CommunicationAgent(BaseAgent):
             f"Our team will review this shortly — typically within 1-2 hours. "
             f"We appreciate your patience and want to keep your account safe. 🛡️"
         )
-

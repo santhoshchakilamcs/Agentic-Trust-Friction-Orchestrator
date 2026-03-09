@@ -10,10 +10,9 @@ human approval. In production this would integrate with a review queue
 
 from typing import Callable, Optional
 
-from agentic_orchestrator.memory.short_term import TransactionState
 from agentic_orchestrator.compliance.pii_masker import PIIMasker
 from agentic_orchestrator.config import ACTION_APPROVE, ACTION_BLOCK, ACTION_ESCALATE
-
+from agentic_orchestrator.memory.short_term import TransactionState
 
 # Type alias for a review callback
 ReviewCallback = Callable[[TransactionState], str]  # returns "APPROVE" | "REJECT" | "OVERRIDE"
@@ -21,7 +20,7 @@ ReviewCallback = Callable[[TransactionState], str]  # returns "APPROVE" | "REJEC
 
 def _interactive_review(state: TransactionState) -> str:
     """CLI-based human review prompt (used in demo mode)."""
-    masked = PIIMasker.mask_dict(state.to_dict())
+    PIIMasker.mask_dict(state.to_dict())  # ensure PII masking runs
     print("\n" + "=" * 60)
     print("🛑  HUMAN REVIEW REQUIRED")
     print("=" * 60)
@@ -73,10 +72,7 @@ class HITLReviewer:
 
     def needs_review(self, state: TransactionState) -> bool:
         """Check whether this transaction requires human review."""
-        return (
-            state.compliance_override == ACTION_ESCALATE
-            or state.hitl_required
-        )
+        return state.compliance_override == ACTION_ESCALATE or state.hitl_required
 
     def review(self, state: TransactionState) -> TransactionState:
         """
@@ -129,13 +125,14 @@ class HITLReviewer:
             state.log("HITL", f"🔄 Human OVERRIDE: {state.hitl_reviewer_notes}")
 
         # Record in review log for audit trail
-        self.review_log.append({
-            "txn_id": state.txn_id,
-            "decision": state.hitl_decision,
-            "notes": state.hitl_reviewer_notes,
-            "original_risk_action": state.risk_action,
-            "original_risk_score": state.risk_score,
-        })
+        self.review_log.append(
+            {
+                "txn_id": state.txn_id,
+                "decision": state.hitl_decision,
+                "notes": state.hitl_reviewer_notes,
+                "original_risk_action": state.risk_action,
+                "original_risk_score": state.risk_score,
+            }
+        )
 
         return state
-

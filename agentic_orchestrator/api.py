@@ -17,38 +17,33 @@ Then POST to http://localhost:8000/api/v1/evaluate
 """
 
 import os
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
 from typing import List, Optional
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException, Request, Security, Depends
-from fastapi.security import APIKeyHeader
+from fastapi import Depends, FastAPI, HTTPException, Request, Security
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
+from fastapi.security import APIKeyHeader
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from slowapi import Limiter, _rate_limit_exceeded_handler
-from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
-from starlette.responses import JSONResponse
+from slowapi.util import get_remote_address
 
-from agentic_orchestrator.memory.short_term import TransactionState
-from agentic_orchestrator.memory.long_term import LongTermMemory
-from agentic_orchestrator.orchestrator.engine import OrchestratorEngine
+from agentic_orchestrator.compliance.pii_masker import PIIMasker
 from agentic_orchestrator.data.generator import UserProfile, generate_transactions
 from agentic_orchestrator.llm.client import is_available
-from agentic_orchestrator.compliance.pii_masker import PIIMasker
+from agentic_orchestrator.memory.long_term import LongTermMemory
+from agentic_orchestrator.memory.short_term import TransactionState
+from agentic_orchestrator.orchestrator.engine import OrchestratorEngine
 
 load_dotenv()
 
 # ── Security Configuration ──────────────────────────────────────────────────
 API_SECRET_KEY = os.getenv("API_SECRET_KEY", "")
-CORS_ORIGINS = [
-    o.strip()
-    for o in os.getenv("CORS_ALLOWED_ORIGINS", "http://localhost:3000").split(",")
-    if o.strip()
-]
+CORS_ORIGINS = [o.strip() for o in os.getenv("CORS_ALLOWED_ORIGINS", "http://localhost:3000").split(",") if o.strip()]
 
 api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
 
@@ -66,8 +61,10 @@ limiter = Limiter(key_func=get_remote_address)
 
 # ── Pydantic Models ──────────────────────────────────────────────────────────
 
+
 class TransactionRequest(BaseModel):
     """Incoming transaction to evaluate."""
+
     txn_id: str = Field(default="", description="Transaction ID (auto-generated if empty)")
     user_id: str = Field(..., description="User/sender ID")
     amount_usd: float = Field(..., gt=0, description="Transfer amount in USD")
@@ -75,12 +72,14 @@ class TransactionRequest(BaseModel):
     recipient_country: str = Field(..., description="2-letter country code")
     corridor: str = Field(..., description="Sending-Receiving corridor, e.g. US-PH")
     device_id: str = Field(default="UNKNOWN", description="Device identifier")
-    ip_address: str = Field(default="0.0.0.0", description="Sender IP address")
+    ip_address: str = Field(default="127.0.0.1", description="Sender IP address")  # noqa: S104
     timestamp: str = Field(default="", description="ISO timestamp (auto-filled if empty)")
     is_new_recipient: bool = Field(default=False, description="First time sending to this person?")
 
+
 class EvaluationResponse(BaseModel):
     """Result of the agentic evaluation."""
+
     txn_id: str
     final_action: str
     risk_score: float
@@ -99,8 +98,10 @@ class EvaluationResponse(BaseModel):
     processing_log: List[str]
     llm_enabled: bool
 
+
 class UserProfileRequest(BaseModel):
     """Register a user profile for context-aware analysis."""
+
     user_id: str
     name: str
     country: str
@@ -111,11 +112,13 @@ class UserProfileRequest(BaseModel):
     registered_ip_prefix: str = ""
     life_events: List[dict] = []
 
+
 class HealthResponse(BaseModel):
     status: str
     llm_available: bool
     model: str
     registered_users: int
+
 
 # ── App Setup ────────────────────────────────────────────────────────────────
 
@@ -169,10 +172,12 @@ def serve_ui():
 
 # ── Endpoints ────────────────────────────────────────────────────────────────
 
+
 @app.get("/health", response_model=HealthResponse)
 @limiter.limit("120/minute")
 def health(request: Request):
     from agentic_orchestrator.llm.client import get_model
+
     return HealthResponse(
         status="ok",
         llm_available=is_available(),
@@ -273,4 +278,3 @@ def list_users(
 ):
     """List all registered user IDs."""
     return {"users": sorted(registered_user_ids), "count": len(registered_user_ids)}
-

@@ -1,53 +1,65 @@
 """Tests for all specialized agents (heuristic mode — no API calls)."""
 
-import pytest
 from unittest.mock import patch
-from agentic_orchestrator.memory.short_term import TransactionState
-from agentic_orchestrator.memory.long_term import LongTermMemory
-from agentic_orchestrator.data.generator import UserProfile
-from agentic_orchestrator.agents.investigator import InvestigatorAgent
-from agentic_orchestrator.agents.context import ContextAgent
-from agentic_orchestrator.agents.risk_scorer import RiskScorerAgent
+
+import pytest
+
 from agentic_orchestrator.agents.communication import CommunicationAgent
+from agentic_orchestrator.agents.context import ContextAgent
+from agentic_orchestrator.agents.investigator import InvestigatorAgent
+from agentic_orchestrator.agents.risk_scorer import RiskScorerAgent
 from agentic_orchestrator.config import ACTION_APPROVE, ACTION_CHALLENGE, ACTION_ESCALATE
+from agentic_orchestrator.data.generator import UserProfile
+from agentic_orchestrator.memory.long_term import LongTermMemory
+from agentic_orchestrator.memory.short_term import TransactionState
 
 
 # Force all agents to use heuristic fallback (no real API calls in unit tests)
 @pytest.fixture(autouse=True)
 def _disable_llm():
-    with patch("agentic_orchestrator.agents.investigator.is_available", return_value=False), \
-         patch("agentic_orchestrator.agents.context.is_available", return_value=False), \
-         patch("agentic_orchestrator.agents.risk_scorer.is_available", return_value=False), \
-         patch("agentic_orchestrator.agents.communication.is_available", return_value=False):
+    with (
+        patch("agentic_orchestrator.agents.investigator.is_available", return_value=False),
+        patch("agentic_orchestrator.agents.context.is_available", return_value=False),
+        patch("agentic_orchestrator.agents.risk_scorer.is_available", return_value=False),
+        patch("agentic_orchestrator.agents.communication.is_available", return_value=False),
+    ):
         yield
 
 
 @pytest.fixture
 def memory():
     mem = LongTermMemory()
-    mem.ingest_user_profiles([
-        UserProfile(
-            user_id="USR-AGENT01",
-            name="Maria Santos",
-            country="US",
-            typical_amount=300.0,
-            typical_recipients=["Elena Santos"],
-            typical_corridor="US-PH",
-            registered_device_id="DEV-KNOWN",
-            registered_ip_prefix="192.168.1",
-            life_events=[{"event": "Monthly support for parents", "date": "2026-01-01"}],
-        ),
-    ])
+    mem.ingest_user_profiles(
+        [
+            UserProfile(
+                user_id="USR-AGENT01",
+                name="Maria Santos",
+                country="US",
+                typical_amount=300.0,
+                typical_recipients=["Elena Santos"],
+                typical_corridor="US-PH",
+                registered_device_id="DEV-KNOWN",
+                registered_ip_prefix="192.168.1",
+                life_events=[{"event": "Monthly support for parents", "date": "2026-01-01"}],
+            ),
+        ]
+    )
     yield mem
     mem.clear()
 
 
 def _make_state(**overrides) -> TransactionState:
     defaults = dict(
-        txn_id="TXN-TEST001", user_id="USR-AGENT01", amount_usd=250.0,
-        recipient_name="Elena Santos", recipient_country="PH",
-        corridor="US-PH", device_id="DEV-KNOWN", ip_address="192.168.1.50",
-        timestamp="2026-03-09T10:00:00", is_new_recipient=False,
+        txn_id="TXN-TEST001",
+        user_id="USR-AGENT01",
+        amount_usd=250.0,
+        recipient_name="Elena Santos",
+        recipient_country="PH",
+        corridor="US-PH",
+        device_id="DEV-KNOWN",
+        ip_address="192.168.1.50",
+        timestamp="2026-03-09T10:00:00",
+        is_new_recipient=False,
     )
     defaults.update(overrides)
     return TransactionState(**defaults)
@@ -90,8 +102,11 @@ class TestInvestigatorAgent:
         agent = InvestigatorAgent(memory)
         # Extreme case: everything suspicious
         state = _make_state(
-            amount_usd=50000, device_id="DEV-BAD", recipient_country="IR",
-            is_new_recipient=True, timestamp="2026-03-09T03:00:00",
+            amount_usd=50000,
+            device_id="DEV-BAD",
+            recipient_country="IR",
+            is_new_recipient=True,
+            timestamp="2026-03-09T03:00:00",
         )
         result = agent.run(state)
         assert 0.0 <= result.investigator_score <= 1.0
@@ -201,4 +216,3 @@ class TestCommunicationAgent:
         state.risk_action = ACTION_CHALLENGE
         result = agent.run(state)
         assert "first transfer" in result.challenge_message.lower()
-

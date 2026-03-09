@@ -5,21 +5,18 @@ Runs synthetic transactions through both the legacy baseline model
 and the full agentic pipeline, then compares results in shadow mode.
 """
 
-from rich.console import Console
-from rich.table import Table
-from rich.panel import Panel
 from rich import box
-import json
+from rich.console import Console
+from rich.panel import Panel
+from rich.table import Table
 
-from agentic_orchestrator.data.generator import generate_transactions, Transaction
-from agentic_orchestrator.memory.short_term import TransactionState
-from agentic_orchestrator.memory.long_term import LongTermMemory
-from agentic_orchestrator.orchestrator.engine import OrchestratorEngine
+from agentic_orchestrator.compliance.pii_masker import PIIMasker
+from agentic_orchestrator.data.generator import Transaction, generate_transactions
 from agentic_orchestrator.evaluation.baseline_model import BaselineModel
 from agentic_orchestrator.evaluation.shadow_mode import ShadowModeReport, ShadowResult
-from agentic_orchestrator.compliance.pii_masker import PIIMasker
-from agentic_orchestrator.compliance.hitl_reviewer import HITLReviewer
-from agentic_orchestrator.evaluation.llm_judge import LLMJudge
+from agentic_orchestrator.memory.long_term import LongTermMemory
+from agentic_orchestrator.memory.short_term import TransactionState
+from agentic_orchestrator.orchestrator.engine import OrchestratorEngine
 
 console = Console()
 
@@ -45,18 +42,28 @@ def display_transaction_result(txn: Transaction, baseline: dict, agentic_state: 
     color = "red" if txn.is_fraud else "green"
     label = f"🔴 FRAUD ({txn.label})" if txn.is_fraud else "🟢 LEGITIMATE"
 
-    console.print(f"\n{'='*80}")
+    console.print(f"\n{'=' * 80}")
     console.print(f"[bold]Transaction #{idx + 1}[/bold] | {txn.txn_id} | {label}", style=color)
     console.print(f"  User: {txn.user_id} | ${txn.amount_usd:.2f} → {txn.recipient_name} ({txn.recipient_country})")
     console.print(f"  Corridor: {txn.corridor} | New recipient: {txn.is_new_recipient}")
 
     # Baseline result
     b_color = "green" if baseline["action"] == "APPROVE" else "yellow" if baseline["action"] == "CHALLENGE" else "red"
-    console.print(f"  [dim]Baseline:[/dim]  [{b_color}]{baseline['action']}[/{b_color}] (score: {baseline['score']:.4f})")
+    console.print(
+        f"  [dim]Baseline:[/dim]  [{b_color}]{baseline['action']}[/{b_color}] (score: {baseline['score']:.4f})"
+    )
 
     # Agentic result
-    a_color = "green" if agentic_state.final_action == "APPROVE" else "yellow" if agentic_state.final_action == "CHALLENGE" else "red"
-    console.print(f"  [dim]Agentic:[/dim]   [{a_color}]{agentic_state.final_action}[/{a_color}] (score: {agentic_state.risk_score:.4f})")
+    a_color = (
+        "green"
+        if agentic_state.final_action == "APPROVE"
+        else "yellow"
+        if agentic_state.final_action == "CHALLENGE"
+        else "red"
+    )
+    console.print(
+        f"  [dim]Agentic:[/dim]   [{a_color}]{agentic_state.final_action}[/{a_color}] (score: {agentic_state.risk_score:.4f})"
+    )
 
     if agentic_state.challenge_message:
         console.print(f"  [dim]Message:[/dim]  {agentic_state.challenge_message}")
@@ -97,22 +104,41 @@ def display_shadow_report(report: ShadowModeReport):
         b_val = summary["baseline"][metric]
         a_val = summary["agentic"][metric]
         delta = a_val - b_val
-        d_color = "green" if (metric != "false_positive_rate" and delta > 0) or (metric == "false_positive_rate" and delta < 0) else "red" if delta != 0 else "white"
-        comparison.add_row(metric.replace("_", " ").title(), f"{b_val:.4f}", f"{a_val:.4f}", f"[{d_color}]{delta:+.4f}[/{d_color}]")
+        d_color = (
+            "green"
+            if (metric != "false_positive_rate" and delta > 0) or (metric == "false_positive_rate" and delta < 0)
+            else "red"
+            if delta != 0
+            else "white"
+        )
+        comparison.add_row(
+            metric.replace("_", " ").title(), f"{b_val:.4f}", f"{a_val:.4f}", f"[{d_color}]{delta:+.4f}[/{d_color}]"
+        )
 
-    comparison.add_row("True Positives", str(summary["baseline"]["true_positives"]), str(summary["agentic"]["true_positives"]), "")
-    comparison.add_row("False Positives", str(summary["baseline"]["false_positives"]), str(summary["agentic"]["false_positives"]), "")
+    comparison.add_row(
+        "True Positives", str(summary["baseline"]["true_positives"]), str(summary["agentic"]["true_positives"]), ""
+    )
+    comparison.add_row(
+        "False Positives", str(summary["baseline"]["false_positives"]), str(summary["agentic"]["false_positives"]), ""
+    )
     console.print(comparison)
 
     # Improvement examples
     if summary["improvement_details"]:
-        console.print("\n[bold cyan]Agentic Improvements (Legit txns correctly approved that baseline would have flagged):[/bold cyan]")
+        console.print(
+            "\n[bold cyan]Agentic Improvements (Legit txns correctly approved that baseline would have flagged):[/bold cyan]"
+        )
         for detail in summary["improvement_details"][:5]:
             console.print(f"  ✅ {detail['txn_id']}: {detail['reasoning'][:120]}...")
 
     # PII masking demo
     console.print("\n[bold cyan]PII Masking Demo:[/bold cyan]")
-    sample = {"user_id": "USR-ABC123", "ip_address": "192.168.1.1", "recipient_name": "Elena Santos", "amount_usd": 500.0}
+    sample = {
+        "user_id": "USR-ABC123",
+        "ip_address": "192.168.1.1",
+        "recipient_name": "Elena Santos",
+        "amount_usd": 500.0,
+    }
     masked = PIIMasker.mask_dict(sample)
     console.print(f"  Original: {sample}")
     console.print(f"  Masked:   {masked}")
@@ -149,6 +175,7 @@ def display_judge_report(judge_results: list):
     # Show top issues
     if issues_all:
         from collections import Counter
+
         top_issues = Counter(issues_all).most_common(5)
         console.print("\n[bold magenta]Top Issues Identified by Judge:[/bold magenta]")
         for issue, count in top_issues:
@@ -178,12 +205,15 @@ def display_hitl_report(review_log: list):
 
 
 def main():
-    console.print(Panel(
-        "[bold white]🤖 AGENTIC RISK & RETENTION ORCHESTRATOR[/bold white]\n"
-        "[dim]Multi-Agent System for Cross-Border Payment Fraud Detection[/dim]\n"
-        "[dim]Shadow Mode: Comparing Baseline vs. Agentic Decisions[/dim]",
-        style="blue", box=box.DOUBLE,
-    ))
+    console.print(
+        Panel(
+            "[bold white]🤖 AGENTIC RISK & RETENTION ORCHESTRATOR[/bold white]\n"
+            "[dim]Multi-Agent System for Cross-Border Payment Fraud Detection[/dim]\n"
+            "[dim]Shadow Mode: Comparing Baseline vs. Agentic Decisions[/dim]",
+            style="blue",
+            box=box.DOUBLE,
+        )
+    )
 
     # 1. Generate synthetic data
     console.print("\n[bold]Step 1:[/bold] Generating synthetic transaction data...")
@@ -218,25 +248,29 @@ def main():
 
         # Collect LLM-Judge results
         if agentic_result.judge_score is not None:
-            judge_results.append({
-                "txn_id": txn.txn_id,
-                "overall_score": agentic_result.judge_score,
-                "grade": agentic_result.judge_reasoning_grade,
-                "feedback": agentic_result.judge_feedback,
-                "issues": [],  # issues are in the feedback string
-            })
+            judge_results.append(
+                {
+                    "txn_id": txn.txn_id,
+                    "overall_score": agentic_result.judge_score,
+                    "grade": agentic_result.judge_reasoning_grade,
+                    "feedback": agentic_result.judge_feedback,
+                    "issues": [],  # issues are in the feedback string
+                }
+            )
 
         # Record in shadow mode
-        report.add_result(ShadowResult(
-            txn_id=txn.txn_id,
-            is_fraud=txn.is_fraud,
-            ground_truth_label=txn.label,
-            baseline_action=baseline_result["action"],
-            baseline_score=baseline_result["score"],
-            agentic_action=agentic_result.final_action,
-            agentic_score=agentic_result.risk_score,
-            agentic_reasoning=agentic_result.final_reasoning,
-        ))
+        report.add_result(
+            ShadowResult(
+                txn_id=txn.txn_id,
+                is_fraud=txn.is_fraud,
+                ground_truth_label=txn.label,
+                baseline_action=baseline_result["action"],
+                baseline_score=baseline_result["score"],
+                agentic_action=agentic_result.final_action,
+                agentic_score=agentic_result.risk_score,
+                agentic_reasoning=agentic_result.final_reasoning,
+            )
+        )
 
     # 4. Display shadow mode report
     console.print(f"\n[dim](Showing first 10 of {len(transactions)} transactions in detail)[/dim]")
@@ -255,4 +289,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

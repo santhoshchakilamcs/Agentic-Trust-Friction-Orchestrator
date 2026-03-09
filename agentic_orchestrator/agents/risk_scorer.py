@@ -4,15 +4,15 @@ Uses Claude API for reasoning with heuristic fallback.
 """
 
 from agentic_orchestrator.agents.base import BaseAgent
-from agentic_orchestrator.memory.short_term import TransactionState
 from agentic_orchestrator.config import (
-    RISK_APPROVE_THRESHOLD,
-    RISK_CHALLENGE_THRESHOLD,
     ACTION_APPROVE,
     ACTION_CHALLENGE,
     ACTION_ESCALATE,
+    RISK_APPROVE_THRESHOLD,
+    RISK_CHALLENGE_THRESHOLD,
 )
 from agentic_orchestrator.llm.client import call_claude_json, is_available
+from agentic_orchestrator.memory.short_term import TransactionState
 
 RISK_SCORER_SYSTEM = """You are a risk scoring agent for Remitly, a cross-border payment company.
 You receive the investigator's raw risk score and flags, plus the context agent's findings and adjustment.
@@ -115,7 +115,9 @@ class RiskScorerAgent(BaseAgent):
             parts.append(f"Investigation flags: {'; '.join(state.investigator_flags)}.")
 
         if state.context_findings:
-            mitigating = [f for f in state.context_findings if "trust +" in f or "normal range" in f or "Life event" in f]
+            mitigating = [
+                f for f in state.context_findings if "trust +" in f or "normal range" in f or "Life event" in f
+            ]
             concerning = [f for f in state.context_findings if f not in mitigating]
             if mitigating:
                 parts.append(f"Mitigating context: {'; '.join(mitigating)}.")
@@ -123,7 +125,6 @@ class RiskScorerAgent(BaseAgent):
                 parts.append(f"Concerns: {'; '.join(concerning)}.")
 
         if state.context_life_events:
-            parts.append(f"Life events support this transaction pattern.")
+            parts.append("Life events support this transaction pattern.")
 
         return " ".join(parts)
-

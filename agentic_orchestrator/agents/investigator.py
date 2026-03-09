@@ -4,11 +4,10 @@ Uses Claude API for reasoning with heuristic fallback.
 """
 
 from agentic_orchestrator.agents.base import BaseAgent
-from agentic_orchestrator.memory.short_term import TransactionState
-from agentic_orchestrator.memory.long_term import LongTermMemory
 from agentic_orchestrator.config import FEATURE_WEIGHTS, SANCTIONS_COUNTRIES
 from agentic_orchestrator.llm.client import call_claude_json, is_available
-
+from agentic_orchestrator.memory.long_term import LongTermMemory
+from agentic_orchestrator.memory.short_term import TransactionState
 
 INVESTIGATOR_SYSTEM = """You are a fraud investigation agent for Remitly, a cross-border payment company.
 Analyze the transaction and user profile data provided. Assess risk across these dimensions:
@@ -82,9 +81,7 @@ class InvestigatorAgent(BaseAgent):
             scores.setdefault(key, 0.0)
             scores[key] = max(0.0, min(1.0, float(scores[key])))
 
-        weighted_score = sum(
-            scores.get(k, 0) * w for k, w in FEATURE_WEIGHTS.items()
-        )
+        weighted_score = sum(scores.get(k, 0) * w for k, w in FEATURE_WEIGHTS.items())
 
         state.investigator_score = round(min(1.0, weighted_score), 4)
         state.investigator_flags = flags
@@ -142,6 +139,7 @@ class InvestigatorAgent(BaseAgent):
         if state.timestamp:
             try:
                 from datetime import datetime
+
                 ts = datetime.fromisoformat(state.timestamp)
                 hour = ts.hour
                 if hour < 5 or hour > 23:
@@ -157,9 +155,7 @@ class InvestigatorAgent(BaseAgent):
         for key in FEATURE_WEIGHTS:
             scores.setdefault(key, 0.0)
 
-        weighted_score = sum(
-            scores.get(k, 0) * w for k, w in FEATURE_WEIGHTS.items()
-        )
+        weighted_score = sum(scores.get(k, 0) * w for k, w in FEATURE_WEIGHTS.items())
 
         state.investigator_score = round(min(1.0, weighted_score), 4)
         state.investigator_flags = flags
@@ -169,4 +165,3 @@ class InvestigatorAgent(BaseAgent):
         if flags:
             state.log(self.name, f"Flags raised: {', '.join(flags)}")
         return state
-

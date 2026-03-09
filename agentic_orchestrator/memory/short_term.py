@@ -64,5 +64,5 @@ class TransactionState:
 
     def to_dict(self) -> Dict[str, Any]:
         from dataclasses import asdict
-        return asdict(self)
 
+        return asdict(self)

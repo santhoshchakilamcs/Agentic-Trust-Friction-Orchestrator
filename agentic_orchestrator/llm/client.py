@@ -8,9 +8,9 @@ Provides:
   - JSON response parsing
 """
 
-import os
 import json
 import logging
+import os
 from typing import Optional
 
 from dotenv import load_dotenv
@@ -30,11 +30,10 @@ def get_client():
         api_key = os.getenv("ANTHROPIC_API_KEY", "")
         _model = os.getenv("ANTHROPIC_MODEL", "claude-sonnet-4-20250514")
         if not api_key or api_key == "your-key-here":
-            logger.warning(
-                "ANTHROPIC_API_KEY not set. Agents will use heuristic fallback."
-            )
+            logger.warning("ANTHROPIC_API_KEY not set. Agents will use heuristic fallback.")
             return None
         import anthropic
+
         _client = anthropic.Anthropic(api_key=api_key)
     return _client
 
@@ -101,10 +100,9 @@ def call_claude_json(
         if text.startswith("```"):
             lines = text.split("\n")
             # Remove first and last lines (```json and ```)
-            lines = [l for l in lines if not l.strip().startswith("```")]
+            lines = [line for line in lines if not line.strip().startswith("```")]
             text = "\n".join(lines)
         return json.loads(text)
     except json.JSONDecodeError:
         logger.warning(f"Failed to parse Claude JSON response: {raw[:200]}")
         return None
-

@@ -1,42 +1,55 @@
 """Tests for the LangGraph orchestrator and shadow mode evaluation (heuristic mode)."""
 
-import pytest
 from unittest.mock import patch
-from agentic_orchestrator.memory.short_term import TransactionState
-from agentic_orchestrator.memory.long_term import LongTermMemory
-from agentic_orchestrator.data.generator import UserProfile, Transaction
-from agentic_orchestrator.orchestrator.engine import OrchestratorEngine
-from agentic_orchestrator.evaluation.baseline_model import BaselineModel
-from agentic_orchestrator.evaluation.shadow_mode import ShadowModeReport, ShadowResult
+
+import pytest
+
 from agentic_orchestrator.config import (
-    ACTION_APPROVE, ACTION_BLOCK, ACTION_CHALLENGE, ACTION_ESCALATE,
+    ACTION_APPROVE,
+    ACTION_BLOCK,
+    ACTION_CHALLENGE,
+    ACTION_ESCALATE,
     AML_THRESHOLD_USD,
 )
+from agentic_orchestrator.data.generator import Transaction, UserProfile
+from agentic_orchestrator.evaluation.baseline_model import BaselineModel
+from agentic_orchestrator.evaluation.shadow_mode import ShadowModeReport, ShadowResult
+from agentic_orchestrator.memory.long_term import LongTermMemory
+from agentic_orchestrator.memory.short_term import TransactionState
+from agentic_orchestrator.orchestrator.engine import OrchestratorEngine
 
 
 # Force all agents to use heuristic fallback (no real API calls in unit tests)
 @pytest.fixture(autouse=True)
 def _disable_llm():
-    with patch("agentic_orchestrator.agents.investigator.is_available", return_value=False), \
-         patch("agentic_orchestrator.agents.context.is_available", return_value=False), \
-         patch("agentic_orchestrator.agents.risk_scorer.is_available", return_value=False), \
-         patch("agentic_orchestrator.agents.communication.is_available", return_value=False), \
-         patch("agentic_orchestrator.evaluation.llm_judge.is_available", return_value=False):
+    with (
+        patch("agentic_orchestrator.agents.investigator.is_available", return_value=False),
+        patch("agentic_orchestrator.agents.context.is_available", return_value=False),
+        patch("agentic_orchestrator.agents.risk_scorer.is_available", return_value=False),
+        patch("agentic_orchestrator.agents.communication.is_available", return_value=False),
+        patch("agentic_orchestrator.evaluation.llm_judge.is_available", return_value=False),
+    ):
         yield
 
 
 @pytest.fixture
 def engine():
     mem = LongTermMemory()
-    mem.ingest_user_profiles([
-        UserProfile(
-            user_id="USR-ORCH01", name="Maria Santos", country="US",
-            typical_amount=300.0, typical_recipients=["Elena Santos"],
-            typical_corridor="US-PH", registered_device_id="DEV-REG",
-            registered_ip_prefix="192.168.1",
-            life_events=[{"event": "Monthly support for parents", "date": "2026-01-01"}],
-        ),
-    ])
+    mem.ingest_user_profiles(
+        [
+            UserProfile(
+                user_id="USR-ORCH01",
+                name="Maria Santos",
+                country="US",
+                typical_amount=300.0,
+                typical_recipients=["Elena Santos"],
+                typical_corridor="US-PH",
+                registered_device_id="DEV-REG",
+                registered_ip_prefix="192.168.1",
+                life_events=[{"event": "Monthly support for parents", "date": "2026-01-01"}],
+            ),
+        ]
+    )
     eng = OrchestratorEngine(mem)
     yield eng
     mem.clear()
@@ -44,10 +57,16 @@ def engine():
 
 def _make_state(**overrides) -> TransactionState:
     defaults = dict(
-        txn_id="TXN-ORCH01", user_id="USR-ORCH01", amount_usd=250.0,
-        recipient_name="Elena Santos", recipient_country="PH",
-        corridor="US-PH", device_id="DEV-REG", ip_address="192.168.1.50",
-        timestamp="2026-03-09T10:00:00", is_new_recipient=False,
+        txn_id="TXN-ORCH01",
+        user_id="USR-ORCH01",
+        amount_usd=250.0,
+        recipient_name="Elena Santos",
+        recipient_country="PH",
+        corridor="US-PH",
+        device_id="DEV-REG",
+        ip_address="192.168.1.50",
+        timestamp="2026-03-09T10:00:00",
+        is_new_recipient=False,
     )
     defaults.update(overrides)
     return TransactionState(**defaults)
@@ -97,10 +116,16 @@ class TestBaselineModel:
     def test_approve_normal_transaction(self):
         model = BaselineModel()
         txn = Transaction(
-            txn_id="TXN-B01", user_id="USR-01", amount_usd=200.0,
-            recipient_name="Elena", recipient_country="PH", corridor="US-PH",
-            device_id="DEV-1", ip_address="1.2.3.4",
-            timestamp="2026-03-09T10:00:00", is_new_recipient=False,
+            txn_id="TXN-B01",
+            user_id="USR-01",
+            amount_usd=200.0,
+            recipient_name="Elena",
+            recipient_country="PH",
+            corridor="US-PH",
+            device_id="DEV-1",
+            ip_address="1.2.3.4",
+            timestamp="2026-03-09T10:00:00",
+            is_new_recipient=False,
         )
         result = model.predict(txn)
         assert result["action"] == ACTION_APPROVE
@@ -109,10 +134,16 @@ class TestBaselineModel:
     def test_block_sanctioned_country(self):
         model = BaselineModel()
         txn = Transaction(
-            txn_id="TXN-B02", user_id="USR-01", amount_usd=200.0,
-            recipient_name="Elena", recipient_country="KP", corridor="US-KP",
-            device_id="DEV-1", ip_address="1.2.3.4",
-            timestamp="2026-03-09T10:00:00", is_new_recipient=False,
+            txn_id="TXN-B02",
+            user_id="USR-01",
+            amount_usd=200.0,
+            recipient_name="Elena",
+            recipient_country="KP",
+            corridor="US-KP",
+            device_id="DEV-1",
+            ip_address="1.2.3.4",
+            timestamp="2026-03-09T10:00:00",
+            is_new_recipient=False,
         )
         result = model.predict(txn)
         assert result["action"] == ACTION_BLOCK
@@ -120,10 +151,16 @@ class TestBaselineModel:
     def test_high_amount_new_recipient_escalates(self):
         model = BaselineModel()
         txn = Transaction(
-            txn_id="TXN-B03", user_id="USR-01", amount_usd=3500.0,
-            recipient_name="Unknown", recipient_country="PH", corridor="US-PH",
-            device_id="DEV-1", ip_address="1.2.3.4",
-            timestamp="2026-03-09T10:00:00", is_new_recipient=True,
+            txn_id="TXN-B03",
+            user_id="USR-01",
+            amount_usd=3500.0,
+            recipient_name="Unknown",
+            recipient_country="PH",
+            corridor="US-PH",
+            device_id="DEV-1",
+            ip_address="1.2.3.4",
+            timestamp="2026-03-09T10:00:00",
+            is_new_recipient=True,
         )
         result = model.predict(txn)
         assert result["action"] in (ACTION_CHALLENGE, ACTION_ESCALATE)
@@ -133,26 +170,44 @@ class TestShadowModeReport:
     def test_correct_classification_counts(self):
         report = ShadowModeReport()
         # Fraud correctly caught by both
-        report.add_result(ShadowResult(
-            txn_id="T1", is_fraud=True, ground_truth_label="fraud",
-            baseline_action=ACTION_ESCALATE, baseline_score=0.8,
-            agentic_action=ACTION_ESCALATE, agentic_score=0.7,
-            agentic_reasoning="High risk",
-        ))
+        report.add_result(
+            ShadowResult(
+                txn_id="T1",
+                is_fraud=True,
+                ground_truth_label="fraud",
+                baseline_action=ACTION_ESCALATE,
+                baseline_score=0.8,
+                agentic_action=ACTION_ESCALATE,
+                agentic_score=0.7,
+                agentic_reasoning="High risk",
+            )
+        )
         # Legit correctly approved by both
-        report.add_result(ShadowResult(
-            txn_id="T2", is_fraud=False, ground_truth_label="legit",
-            baseline_action=ACTION_APPROVE, baseline_score=0.1,
-            agentic_action=ACTION_APPROVE, agentic_score=0.05,
-            agentic_reasoning="Low risk",
-        ))
+        report.add_result(
+            ShadowResult(
+                txn_id="T2",
+                is_fraud=False,
+                ground_truth_label="legit",
+                baseline_action=ACTION_APPROVE,
+                baseline_score=0.1,
+                agentic_action=ACTION_APPROVE,
+                agentic_score=0.05,
+                agentic_reasoning="Low risk",
+            )
+        )
         # Legit flagged by baseline but approved by agentic (improvement)
-        report.add_result(ShadowResult(
-            txn_id="T3", is_fraud=False, ground_truth_label="legit",
-            baseline_action=ACTION_CHALLENGE, baseline_score=0.5,
-            agentic_action=ACTION_APPROVE, agentic_score=0.2,
-            agentic_reasoning="Context showed known recipient",
-        ))
+        report.add_result(
+            ShadowResult(
+                txn_id="T3",
+                is_fraud=False,
+                ground_truth_label="legit",
+                baseline_action=ACTION_CHALLENGE,
+                baseline_score=0.5,
+                agentic_action=ACTION_APPROVE,
+                agentic_score=0.2,
+                agentic_reasoning="Context showed known recipient",
+            )
+        )
 
         summary = report.summary()
         assert summary["total_transactions"] == 3
@@ -164,18 +219,30 @@ class TestShadowModeReport:
 
     def test_agreement_rate(self):
         report = ShadowModeReport()
-        report.add_result(ShadowResult(
-            txn_id="T1", is_fraud=False, ground_truth_label="legit",
-            baseline_action=ACTION_APPROVE, baseline_score=0.1,
-            agentic_action=ACTION_APPROVE, agentic_score=0.1,
-            agentic_reasoning="",
-        ))
-        report.add_result(ShadowResult(
-            txn_id="T2", is_fraud=False, ground_truth_label="legit",
-            baseline_action=ACTION_CHALLENGE, baseline_score=0.5,
-            agentic_action=ACTION_APPROVE, agentic_score=0.1,
-            agentic_reasoning="",
-        ))
+        report.add_result(
+            ShadowResult(
+                txn_id="T1",
+                is_fraud=False,
+                ground_truth_label="legit",
+                baseline_action=ACTION_APPROVE,
+                baseline_score=0.1,
+                agentic_action=ACTION_APPROVE,
+                agentic_score=0.1,
+                agentic_reasoning="",
+            )
+        )
+        report.add_result(
+            ShadowResult(
+                txn_id="T2",
+                is_fraud=False,
+                ground_truth_label="legit",
+                baseline_action=ACTION_CHALLENGE,
+                baseline_score=0.5,
+                agentic_action=ACTION_APPROVE,
+                agentic_score=0.1,
+                agentic_reasoning="",
+            )
+        )
         summary = report.summary()
         assert summary["agreement_rate"] == 0.5
 
@@ -211,14 +278,21 @@ class TestLLMJudge:
     def test_judge_disabled(self):
         """When judge_enabled=False, no judge evaluation occurs."""
         mem = LongTermMemory()
-        mem.ingest_user_profiles([
-            UserProfile(
-                user_id="USR-NOJUDGE", name="Test", country="US",
-                typical_amount=300.0, typical_recipients=["Recipient"],
-                typical_corridor="US-PH", registered_device_id="DEV-1",
-                registered_ip_prefix="10.0.0", life_events=[],
-            ),
-        ])
+        mem.ingest_user_profiles(
+            [
+                UserProfile(
+                    user_id="USR-NOJUDGE",
+                    name="Test",
+                    country="US",
+                    typical_amount=300.0,
+                    typical_recipients=["Recipient"],
+                    typical_corridor="US-PH",
+                    registered_device_id="DEV-1",
+                    registered_ip_prefix="10.0.0",
+                    life_events=[],
+                ),
+            ]
+        )
         eng = OrchestratorEngine(mem, judge_enabled=False)
         state = _make_state(user_id="USR-NOJUDGE")
         result = eng.process_transaction(state)
@@ -235,6 +309,7 @@ class TestLLMJudge:
     def test_judge_standalone_evaluation(self):
         """Test LLMJudge directly without the orchestrator."""
         from agentic_orchestrator.evaluation.llm_judge import LLMJudge
+
         judge = LLMJudge()
         state = _make_state()
         state.risk_reasoning = "Normal transaction to known recipient"
@@ -252,4 +327,3 @@ class TestLLMJudge:
         assert 0.0 <= verdict.overall_score <= 1.0
         assert verdict.grade in ("A", "B", "C", "D", "F")
         assert verdict.feedback != ""
-

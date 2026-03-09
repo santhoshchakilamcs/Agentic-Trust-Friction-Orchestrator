@@ -5,10 +5,11 @@ Uses Claude API for reasoning with heuristic fallback.
 """
 
 import json
+
 from agentic_orchestrator.agents.base import BaseAgent
-from agentic_orchestrator.memory.short_term import TransactionState
-from agentic_orchestrator.memory.long_term import LongTermMemory
 from agentic_orchestrator.llm.client import call_claude_json, is_available
+from agentic_orchestrator.memory.long_term import LongTermMemory
+from agentic_orchestrator.memory.short_term import TransactionState
 
 CONTEXT_SYSTEM = """You are a context analysis agent for Remitly, a cross-border payment company.
 Given a transaction and the user's historical profile, determine if the transaction fits known patterns.
@@ -152,4 +153,3 @@ class ContextAgent(BaseAgent):
         for f in findings:
             state.log(self.name, f"  → {f}")
         return state
-

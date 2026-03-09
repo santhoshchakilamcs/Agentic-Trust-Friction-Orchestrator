@@ -17,10 +17,12 @@ class LongTermMemory:
     """Persistent vector memory for user personas and life events."""
 
     def __init__(self):
-        self._client = chromadb.Client(Settings(
-            persist_directory=CHROMA_PERSIST_DIR,
-            anonymized_telemetry=False,
-        ))
+        self._client = chromadb.Client(
+            Settings(
+                persist_directory=CHROMA_PERSIST_DIR,
+                anonymized_telemetry=False,
+            )
+        )
         self._collection = self._client.get_or_create_collection(
             name=CHROMA_COLLECTION_NAME,
             metadata={"hnsw:space": "cosine"},
@@ -34,9 +36,9 @@ class LongTermMemory:
 
         for profile in profiles:
             # Build a rich text document for each user
-            life_event_text = "; ".join(
-                [e["event"] for e in profile.life_events]
-            ) if profile.life_events else "No known life events"
+            life_event_text = (
+                "; ".join([e["event"] for e in profile.life_events]) if profile.life_events else "No known life events"
+            )
 
             doc = (
                 f"User {profile.name} (ID: {profile.user_id}) from {profile.country}. "
@@ -47,15 +49,17 @@ class LongTermMemory:
                 f"Registered device: {profile.registered_device_id}."
             )
             documents.append(doc)
-            metadatas.append({
-                "user_id": profile.user_id,
-                "country": profile.country,
-                "typical_amount": profile.typical_amount,
-                "corridor": profile.typical_corridor,
-                "has_life_events": len(profile.life_events) > 0,
-                "recipients": json.dumps(profile.typical_recipients),
-                "device_id": profile.registered_device_id,
-            })
+            metadatas.append(
+                {
+                    "user_id": profile.user_id,
+                    "country": profile.country,
+                    "typical_amount": profile.typical_amount,
+                    "corridor": profile.typical_corridor,
+                    "has_life_events": len(profile.life_events) > 0,
+                    "recipients": json.dumps(profile.typical_recipients),
+                    "device_id": profile.registered_device_id,
+                }
+            )
             ids.append(profile.user_id)
 
         self._collection.upsert(
@@ -108,4 +112,3 @@ class LongTermMemory:
             name=CHROMA_COLLECTION_NAME,
             metadata={"hnsw:space": "cosine"},
         )
-

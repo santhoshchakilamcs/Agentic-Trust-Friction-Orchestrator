@@ -14,12 +14,16 @@ Falls back to deterministic heuristic rubric when API is unavailable.
 from dataclasses import dataclass, field
 from typing import List, Optional
 
-from agentic_orchestrator.memory.short_term import TransactionState
 from agentic_orchestrator.config import (
-    ACTION_APPROVE, ACTION_BLOCK, ACTION_CHALLENGE, ACTION_ESCALATE,
-    SANCTIONS_COUNTRIES, AML_THRESHOLD_USD,
+    ACTION_APPROVE,
+    ACTION_BLOCK,
+    ACTION_CHALLENGE,
+    ACTION_ESCALATE,
+    AML_THRESHOLD_USD,
+    SANCTIONS_COUNTRIES,
 )
 from agentic_orchestrator.llm.client import call_claude_json, is_available
+from agentic_orchestrator.memory.short_term import TransactionState
 
 JUDGE_SYSTEM = """You are an expert evaluator grading the quality of an AI fraud detection system's reasoning.
 Grade the following transaction processing on four dimensions (each 0.0-1.0):
@@ -43,6 +47,7 @@ Respond ONLY with valid JSON:
 @dataclass
 class JudgeVerdict:
     """Structured evaluation from the LLM judge."""
+
     overall_score: float  # 0.0–1.0
     reasoning_score: float  # 0.0–1.0
     tool_usage_score: float  # 0.0–1.0
@@ -107,12 +112,7 @@ class LLMJudge:
         issues = response.get("issues", [])
         feedback = response.get("feedback", "")
 
-        overall = (
-            reasoning_score * 0.30
-            + tool_usage_score * 0.20
-            + decision_score * 0.35
-            + communication_score * 0.15
-        )
+        overall = reasoning_score * 0.30 + tool_usage_score * 0.20 + decision_score * 0.35 + communication_score * 0.15
         grade = self._score_to_grade(overall)
 
         verdict = JudgeVerdict(
@@ -142,12 +142,7 @@ class LLMJudge:
         decision_score = self._evaluate_decision(state, issues)
         communication_score = self._evaluate_communication(state, issues)
 
-        overall = (
-            reasoning_score * 0.30
-            + tool_usage_score * 0.20
-            + decision_score * 0.35
-            + communication_score * 0.15
-        )
+        overall = reasoning_score * 0.30 + tool_usage_score * 0.20 + decision_score * 0.35 + communication_score * 0.15
 
         grade = self._score_to_grade(overall)
         feedback = self._generate_feedback(state, overall, issues)
@@ -278,4 +273,3 @@ class LLMJudge:
             f"Issues: {issue_list}. "
             f"Final action: {state.final_action} (risk score: {state.risk_score:.4f})."
         )
-

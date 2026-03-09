@@ -1,9 +1,10 @@
 """Tests for short-term and long-term memory."""
 
 import pytest
-from agentic_orchestrator.memory.short_term import TransactionState
-from agentic_orchestrator.memory.long_term import LongTermMemory
+
 from agentic_orchestrator.data.generator import UserProfile
+from agentic_orchestrator.memory.long_term import LongTermMemory
+from agentic_orchestrator.memory.short_term import TransactionState
 
 
 class TestTransactionState:
@@ -124,4 +125,3 @@ class TestLongTermMemory:
         memory.ingest_user_profiles(sample_profiles)
         profile = memory.get_user_profile("USR-TEST001")
         assert "$999.00" in profile["document"]
-

@@ -7,19 +7,20 @@ Flow:
   (with compliance override at any point)
 """
 
-from typing import TypedDict, Literal
-from langgraph.graph import StateGraph, END
+from typing import Literal
 
-from agentic_orchestrator.memory.short_term import TransactionState
-from agentic_orchestrator.memory.long_term import LongTermMemory
-from agentic_orchestrator.agents.investigator import InvestigatorAgent
-from agentic_orchestrator.agents.context import ContextAgent
-from agentic_orchestrator.agents.risk_scorer import RiskScorerAgent
+from langgraph.graph import END, StateGraph
+
 from agentic_orchestrator.agents.communication import CommunicationAgent
+from agentic_orchestrator.agents.context import ContextAgent
+from agentic_orchestrator.agents.investigator import InvestigatorAgent
+from agentic_orchestrator.agents.risk_scorer import RiskScorerAgent
 from agentic_orchestrator.compliance.firewall import ComplianceFirewall
 from agentic_orchestrator.compliance.hitl_reviewer import HITLReviewer, ReviewCallback
-from agentic_orchestrator.evaluation.llm_judge import LLMJudge
 from agentic_orchestrator.config import ACTION_APPROVE, ACTION_ESCALATE
+from agentic_orchestrator.evaluation.llm_judge import LLMJudge
+from agentic_orchestrator.memory.long_term import LongTermMemory
+from agentic_orchestrator.memory.short_term import TransactionState
 
 
 class OrchestratorEngine:
@@ -129,15 +130,22 @@ class OrchestratorEngine:
 
         # Safety net: enforce threshold-based action if risk_score contradicts final_action
         from agentic_orchestrator.config import (
-            RISK_APPROVE_THRESHOLD, RISK_CHALLENGE_THRESHOLD,
             ACTION_CHALLENGE,
+            RISK_APPROVE_THRESHOLD,
+            RISK_CHALLENGE_THRESHOLD,
         )
+
         if txn_state.final_action == ACTION_APPROVE and txn_state.risk_score >= RISK_CHALLENGE_THRESHOLD:
             corrected = ACTION_ESCALATE if txn_state.risk_score >= RISK_CHALLENGE_THRESHOLD + 0.1 else ACTION_CHALLENGE
-            txn_state.log("Orchestrator", f"⚠️ Safety override: score {txn_state.risk_score:.3f} too high for {txn_state.final_action} → {corrected}")
+            txn_state.log(
+                "Orchestrator",
+                f"⚠️ Safety override: score {txn_state.risk_score:.3f} too high for {txn_state.final_action} → {corrected}",
+            )
             txn_state.final_action = corrected
         elif txn_state.final_action == ACTION_APPROVE and txn_state.risk_score >= RISK_APPROVE_THRESHOLD:
-            txn_state.log("Orchestrator", f"⚠️ Safety override: score {txn_state.risk_score:.3f} too high for APPROVE → CHALLENGE")
+            txn_state.log(
+                "Orchestrator", f"⚠️ Safety override: score {txn_state.risk_score:.3f} too high for APPROVE → CHALLENGE"
+            )
             txn_state.final_action = ACTION_CHALLENGE
         # Run LLM-as-a-Judge evaluation
         if self.judge:
@@ -180,4 +188,3 @@ class OrchestratorEngine:
         initial = self._state_to_dict(state)
         result = self.graph.invoke(initial)
         return self._dict_to_state(result)
-

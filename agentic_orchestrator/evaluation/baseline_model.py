@@ -4,15 +4,15 @@ This represents what Remitly might currently use — a context-blind, threshold-
 Used as the comparison baseline for shadow mode evaluation.
 """
 
-from agentic_orchestrator.data.generator import Transaction
 from agentic_orchestrator.config import (
-    AML_THRESHOLD_USD,
-    SANCTIONS_COUNTRIES,
     ACTION_APPROVE,
+    ACTION_BLOCK,
     ACTION_CHALLENGE,
     ACTION_ESCALATE,
-    ACTION_BLOCK,
+    AML_THRESHOLD_USD,
+    SANCTIONS_COUNTRIES,
 )
+from agentic_orchestrator.data.generator import Transaction
 
 
 class BaselineModel:
@@ -72,4 +72,3 @@ class BaselineModel:
             "flags": flags,
             "reasoning": f"Static model score: {score:.4f}. Flags: {'; '.join(flags) if flags else 'None'}.",
         }
-

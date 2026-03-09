@@ -8,8 +8,8 @@ SANCTIONS_COUNTRIES = {"KP", "IR", "SY", "CU"}  # ISO 3166-1 alpha-2 sanctioned 
 HIGH_RISK_CORRIDORS = {"US-NG", "US-PK", "GB-BD"}  # Example high-risk corridors
 
 # --- Risk Scoring ---
-RISK_APPROVE_THRESHOLD = 0.3     # Below this -> auto-approve
-RISK_CHALLENGE_THRESHOLD = 0.6   # Between approve and this -> soft challenge (2FA)
+RISK_APPROVE_THRESHOLD = 0.3  # Below this -> auto-approve
+RISK_CHALLENGE_THRESHOLD = 0.6  # Between approve and this -> soft challenge (2FA)
 # Above challenge threshold -> escalate to human review
 
 # --- Transaction Feature Weights (for Investigator Agent) ---
@@ -29,9 +29,17 @@ CHROMA_PERSIST_DIR = ".chroma_db"
 
 # --- Supported Corridors ---
 CORRIDORS = [
-    "US-PH", "US-IN", "US-MX", "US-GT", "US-NG",
-    "GB-PH", "GB-IN", "GB-PK", "GB-BD",
-    "CA-PH", "CA-IN",
+    "US-PH",
+    "US-IN",
+    "US-MX",
+    "US-GT",
+    "US-NG",
+    "GB-PH",
+    "GB-IN",
+    "GB-PK",
+    "GB-BD",
+    "CA-PH",
+    "CA-IN",
 ]
 
 # --- Decision Actions ---
@@ -42,4 +50,3 @@ ACTION_BLOCK = "BLOCK"
 
 # --- Random Seed for Reproducibility ---
 RANDOM_SEED = 42
-

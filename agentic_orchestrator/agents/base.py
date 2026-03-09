@@ -3,6 +3,7 @@ Base agent class for all specialized agents.
 """
 
 from abc import ABC, abstractmethod
+
 from agentic_orchestrator.memory.short_term import TransactionState
 
 
@@ -18,4 +19,3 @@ class BaseAgent(ABC):
 
     def __repr__(self):
         return f"<{self.name}>"
-
