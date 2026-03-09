@@ -119,11 +119,21 @@ jobs:
           API_SECRET_KEY: test-secret-key
           PII_HASH_SALT: test-salt
         run: |
-          timeout 10 uvicorn agentic_orchestrator.api:app --host 0.0.0.0 --port 8000 &
-          sleep 3
-          curl -sf http://localhost:8000/health || exit 1
-          echo "✅ API health check passed"
-          kill %1 2>/dev/null || true
+          uvicorn agentic_orchestrator.api:app --host 127.0.0.1 --port 8000 &
+          SERVER_PID=$!
+          # Retry health check — ChromaDB may download ONNX model on first run
+          for i in $(seq 1 15); do
+            if curl -sf http://127.0.0.1:8000/health > /dev/null 2>&1; then
+              echo "✅ API health check passed (attempt $i)"
+              kill $SERVER_PID 2>/dev/null || true
+              exit 0
+            fi
+            echo "Waiting for API... (attempt $i/15)"
+            sleep 2
+          done
+          echo "❌ API failed to start within 30s"
+          kill $SERVER_PID 2>/dev/null || true
+          exit 1
 
       - name: Pipeline passed
         run: echo "✅ All CI checks passed — ready to merge"
