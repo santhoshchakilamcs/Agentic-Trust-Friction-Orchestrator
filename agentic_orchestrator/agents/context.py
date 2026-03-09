@@ -11,7 +11,7 @@ from agentic_orchestrator.llm.client import call_claude_json, is_available
 from agentic_orchestrator.memory.long_term import LongTermMemory
 from agentic_orchestrator.memory.short_term import TransactionState
 
-CONTEXT_SYSTEM = """You are a context analysis agent for Remitly, a cross-border payment company.
+CONTEXT_SYSTEM = """You are a context analysis agent for a cross-border payment platform.
 Given a transaction and the user's historical profile, determine if the transaction fits known patterns.
 
 Analyze:

@@ -9,7 +9,7 @@ from agentic_orchestrator.llm.client import call_claude_json, is_available
 from agentic_orchestrator.memory.long_term import LongTermMemory
 from agentic_orchestrator.memory.short_term import TransactionState
 
-INVESTIGATOR_SYSTEM = """You are a fraud investigation agent for Remitly, a cross-border payment company.
+INVESTIGATOR_SYSTEM = """You are a fraud investigation agent for a cross-border payment platform.
 Analyze the transaction and user profile data provided. Assess risk across these dimensions:
 - amount_anomaly (0.0-1.0): Is the amount unusual vs. the user's typical pattern?
 - new_recipient (0.0-1.0): Is this a first-time recipient? (0.6 if yes, 0.0 if no)

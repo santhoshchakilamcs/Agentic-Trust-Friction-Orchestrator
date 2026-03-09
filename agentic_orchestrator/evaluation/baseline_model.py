@@ -1,6 +1,6 @@
 """
 Baseline Model: A simple static fraud detection model (the 'Seed 42' legacy approach).
-This represents what Remitly might currently use — a context-blind, threshold-based model.
+This represents a typical context-blind, threshold-based model.
 Used as the comparison baseline for shadow mode evaluation.
 """
 

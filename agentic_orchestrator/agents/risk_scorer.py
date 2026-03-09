@@ -14,7 +14,7 @@ from agentic_orchestrator.config import (
 from agentic_orchestrator.llm.client import call_claude_json, is_available
 from agentic_orchestrator.memory.short_term import TransactionState
 
-RISK_SCORER_SYSTEM = """You are a risk scoring agent for Remitly, a cross-border payment company.
+RISK_SCORER_SYSTEM = """You are a risk scoring agent for a cross-border payment platform.
 You receive the investigator's raw risk score and flags, plus the context agent's findings and adjustment.
 Synthesize these into a final risk decision.
 

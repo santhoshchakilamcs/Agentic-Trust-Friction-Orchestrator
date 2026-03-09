@@ -9,7 +9,7 @@ from agentic_orchestrator.config import ACTION_CHALLENGE, ACTION_ESCALATE
 from agentic_orchestrator.llm.client import call_claude, is_available
 from agentic_orchestrator.memory.short_term import TransactionState
 
-COMMUNICATION_SYSTEM = """You are a customer communication agent for Remitly, a cross-border payment company.
+COMMUNICATION_SYSTEM = """You are a customer communication agent for a cross-border payment platform.
 Generate a SHORT, empathetic, friendly verification message for the customer.
 
 Rules:
