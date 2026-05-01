@@ -9,7 +9,6 @@ from rich import box
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
-from collections import Counter
 
 from agentic_orchestrator.compliance.pii_masker import PIIMasker
 from agentic_orchestrator.data.generator import Transaction, generate_transactions
