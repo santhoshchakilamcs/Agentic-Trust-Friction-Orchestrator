@@ -17,7 +17,6 @@ Then POST to http://localhost:8000/api/v1/evaluate
 """
 
 import os
-from agentic_orchestrator.llm.client import is_available, get_model
 from datetime import datetime
 from pathlib import Path
 from typing import List, Optional
@@ -35,7 +34,8 @@ from slowapi.util import get_remote_address
 
 from agentic_orchestrator.compliance.pii_masker import PIIMasker
 from agentic_orchestrator.data.generator import UserProfile, generate_transactions
-from agentic_orchestrator.llm.client import is_available
+from agentic_orchestrator.llm.client import is_available, get_model
+#from agentic_orchestrator.llm.client import is_available
 from agentic_orchestrator.memory.long_term import LongTermMemory
 from agentic_orchestrator.memory.short_term import TransactionState
 from agentic_orchestrator.orchestrator.engine import OrchestratorEngine
