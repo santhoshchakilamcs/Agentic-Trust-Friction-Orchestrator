@@ -17,6 +17,7 @@ Then POST to http://localhost:8000/api/v1/evaluate
 """
 
 import os
+from agentic_orchestrator.llm.client import is_available, get_model
 from datetime import datetime
 from pathlib import Path
 from typing import List, Optional
