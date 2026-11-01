@@ -167,3 +167,48 @@ GitHub Actions pipeline runs on every push and PR to `main`:
 | `PII_HASH_SALT` | No | Salt for PII hashing (default: empty) |
 | `CORS_ALLOWED_ORIGINS` | No | Comma-separated allowed origins |
 
+
+## Single-Transaction Trace Export
+
+New in this update: `agentic_orchestrator/trace_export.py` exports one
+test transaction's agent decisions as JSON, without calling any LLM
+and without changing the agent pipeline.
+
+```python
+from agentic_orchestrator.trace_export import build_trace, export_trace, example_trace
+
+trace = example_trace()  # synthetic example, txn SYNTH-TEST-001
+export_trace(trace, "trace_SYNTH-TEST-001.json")
+```
+
+Trace format:
+
+```json
+{
+  "txn_id": "SYNTH-TEST-001",
+  "synthetic_data_only": true,
+  "final_action": "CHALLENGE",
+  "risk_score": 0.45,
+  "agent_decisions": [
+    {
+      "agent": "Risk Scorer",
+      "decision": "CHALLENGE",
+      "risk_contribution": 0.45,
+      "note": "Score 0.45 falls in the 0.3-0.6 CHALLENGE band."
+    }
+  ]
+}
+```
+
+- `txn_id`: the transaction being traced.
+- `synthetic_data_only`: always `true` for the example trace. For real
+  runs, only pass decisions after the pipeline's PII hashing step;
+  do not pass raw IP addresses, device IDs, or recipient names here.
+- `final_action`: one of APPROVE, CHALLENGE, ESCALATE, or BLOCK.
+- `risk_score`: 0.0 to 1.0, using the same friction bands as above.
+- `agent_decisions`: one entry per agent, in pipeline order, each
+  with `agent`, `decision`, an optional `risk_contribution`, and an
+  optional `note`.
+
+All example data is synthetic. This export is a debugging and audit
+aid for a single test transaction, not a record of a real payment.
